@@ -240,10 +240,10 @@ static void cond_destroy(cond_t* c)
  * Pipe implementation overview
  * =================================
  *
- * A pipe is implemented as a circular buffer. There are two special cases for
+ * A pipe is implemented as a circular buffer（环形缓冲区）. There are two special cases for
  * this structure: nowrap and wrap.
  *
- * Nowrap:
+ * Nowrap:连续
  *
  *     buffer          begin               end                 bufend
  *       [               >==================>                    ]
@@ -251,7 +251,7 @@ static void cond_destroy(cond_t* c)
  * In this case, the data storage is contiguous, allowing easy access. This is
  * the simplest case.
  *
- * Wrap:
+ * Wrap:头尾相接
  *
  *     buffer        end                 begin                 bufend
  *       [============>                    >=====================]
@@ -264,14 +264,14 @@ static void cond_destroy(cond_t* c)
  * There is always one sentinel element in the pipe, to distinguish between an
  * empty pipe and a full pipe.
  *
- * Invariants:
+ * Invariants:不变性
  *
  * The invariants of a pipe are documented in the check_invariants function,
  * and double-checked frequently in debug builds. This helps restore sanity when
  * making modifications, but may slow down calls. It's best to disable the
  * checks in release builds.
  *
- * Thread-safety:
+ * Thread-safety:线程安全
  *
  * pipe_t has been designed with high threading workloads foremost in my mind.
  * Its initial purpose was to serve as a task queue, with multiple threads
@@ -294,7 +294,7 @@ static void cond_destroy(cond_t* c)
  * inserted/removed. It must also run in O(1) with respect to the number of
  * elements in the pipe.
  *
- * Efficiency:
+ * Efficiency:效率
  *
  * Asserts are used liberally, and many of them, when inlined, can be turned
  * into no-ops. Therefore, it is recommended that you compile with -O1 in
@@ -1087,13 +1087,13 @@ size_t pipe_pop(pipe_consumer_t* p, void* target, size_t count)
     size_t ret = -1;
 
     do {
-        ret = __pipe_pop(PIPIFY(p), target, bytes_left);
-        target = (void*)((char*)target + ret);
+        ret = __pipe_pop(PIPIFY(p), target, bytes_left);//ret为返回的数量
+        target = (void*)((char*)target + ret);//target地址偏移
         bytes_popped += ret;
         bytes_left   -= ret;
     } while(ret != 0 && bytes_left);
 
-    return bytes_popped / elem_size;
+    return bytes_popped / elem_size;//返回值为：count？
 }
 
 size_t pipe_pop_eager(pipe_consumer_t* p, void* target, size_t count)

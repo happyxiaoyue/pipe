@@ -48,14 +48,14 @@ extern "C" {
 #endif
 
 /*
- * A pipe is a collection of elements, enqueued and dequeued in a FIFO pattern.
- * The beauty of it lies in that pushing and popping may be done in multiple
- * threads, with no need for external synchronization. This makes it ideal for
- * assisting in a producer/consumer concurrency model.
+ * A pipe is a collection of elements, enqueued and dequeued（加入和移出队列） in a FIFO pattern.
+ * The beauty of it lies in that pushing and popping may be done in multiple(多个线程中推送、拉取)
+ * threads, with no need for external synchronization（不需要额外的同步）. This makes it ideal for
+ * assisting in a producer/consumer concurrency model（非常适合生产者/消费者模型）.
  *
  * pipe_t
  *
- * If there is a valid pipe_t in circulation, you may create producer_t and
+ * If there is a valid pipe_t in circulation（循环）, you may create producer_t and
  * consumer_t handles from it. It also allows you to run maintainance tasks
  * such as pipe_reserve.
  *
@@ -65,10 +65,10 @@ extern "C" {
  *
  *   #define THREADS 4
  *
- *   pipe_t* p = pipe_new(sizeof(int), 0);
+ *   pipe_t* p = pipe_new(sizeof(int), 0);//创建
  *
- *   pipe_producer_t* pros[THREADS] = { pipe_producer_new(p) };
- *   pipe_consumer_t* cons[THREADS] = { pipe_consumer_new(p) };
+ *   pipe_producer_t* pros[THREADS] = { pipe_producer_new(p) };创建生产者
+ *   pipe_consumer_t* cons[THREADS] = { pipe_consumer_new(p) };消费者
  *
  *   pipe_free(p);
  *
@@ -77,7 +77,7 @@ extern "C" {
  *   // Then clean them up when you're done!
  *   for(int i = 0; i < THREADS; ++i)
  *   {
- *     pipe_producer_free(pros[i]);
+ *     pipe_producer_free(pros[i]);释放销毁生产者
  *     pipe_consumer_free(cons[i]);
  *   }
  *
@@ -103,7 +103,7 @@ extern "C" {
  *
  * #include "pipe.h"
  *
- * #define BUFSIZE 1024
+ * #define BUFSIZE 1024 //设置缓冲区大小
  *
  * void do_stuff(pipe_consumer_t* p)
  * {
@@ -119,16 +119,16 @@ extern "C" {
  * Try and keep the pipe_t allocated for as short a time as possible. This
  * means you should make all your producer and consumer handles at the start,
  * deallocate the pipe_t, then use producers and consumers for the duration
- * of your task.
+ * of your task.(开始的时候就创建生产者和消费者，)
  *
- * pipe_generic_t
+ * pipe_generic_t(智能型)
  *
  * Generic pipe pointers can be created from pipe_t's, producer_t's, or
  * consumer_t's with the PIPE_GENERIC macro. This new pointer can then be used
  * as a parameter to any function requiring it, allowing certain operations to
  * be performed regardless of the type.
  *
- * Guarantees:
+ * Guarantees:()
  *
  * If, in a single thread, elements are pushed in the order [a, b, c, d, ...],
  * they will be popped in that order. Note that they may not necessarily be
@@ -154,30 +154,30 @@ typedef struct pipe_generic_t  pipe_generic_t;
  * you want this to be 0. However, limits help prevent an explosion of memory
  * usage in cases where production is significantly faster than consumption.
  */
-pipe_t* MALLOC_LIKE WARN_UNUSED_RESULT pipe_new(size_t elem_size, size_t limit);
+pipe_t* MALLOC_LIKE WARN_UNUSED_RESULT pipe_new(size_t elem_size, size_t limit);//创建、初始化pipe
 
 /*
  * Makes a production handle to the pipe, allowing push operations. This
  * function is extremely cheap; it doesn't allocate memory.
  */
-pipe_producer_t* NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_producer_new(pipe_t*);
+pipe_producer_t* NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_producer_new(pipe_t*);//创建生产者
 
 /*
  * Makes a consumption handle to the pipe, allowing pop operations. This
  * function is extremely cheap; it doesn't allocate memory.
  */
-pipe_consumer_t* NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_consumer_new(pipe_t*);
+pipe_consumer_t* NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_consumer_new(pipe_t*);//创建消费者
 
 /*
  * If you call *_new, you must call the corresponding *_free. Failure to do so
  * may result in resource leaks, undefined behavior, and spontaneous combustion.
  */
 
-void pipe_free(pipe_t*);
+void pipe_free(pipe_t*);//释放
 void pipe_producer_free(pipe_producer_t*);
 void pipe_consumer_free(pipe_consumer_t*);
 
-/* Copies `count' elements from `elems' into the pipe. */
+/* Copies `count' elements from `elems' into the pipe. 将消费者加入pipe队列*/
 void NO_NULL_POINTERS pipe_push(pipe_producer_t*, const void* elems, size_t count);
 
 /*
@@ -185,7 +185,7 @@ void NO_NULL_POINTERS pipe_push(pipe_producer_t*, const void* elems, size_t coun
  *
  * WARNING: You probably want pipe_push.
  *
- * If the pipe is full, this version of pipe_push will automatically pop enough
+ * If the pipe is full(如果pipe满了), this version of pipe_push will automatically pop enough（从队列最前方自动弹出足够的元素）
  * elements from the front of the queue to make room for the new elements in
  * the pipe.
  *
@@ -218,16 +218,17 @@ size_t NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_pop(pipe_consumer_t*,
 /*
  * Tries to pop `count' elements out of the pipe and into `target', returning
  * the number of elements successfully copied. This function will block until:
- *
- * a) there is at least one element in the pipe.
- * b) all producer_t handles have been freed (including the parent pipe_t).
+ * 从pipe弹出count个元素，进入target，返回个数；该操作会一直阻塞直到满足条件；
+ * 
+ * a) there is at least one element in the pipe.至少有一个元素在pipe
+ * b) all producer_t handles have been freed (including the parent pipe_t).所有生产者被释放
  *
  * If this function returns 0, there will be no more elements coming in. Every
  * subsequent call will return 0.
  *
  * The difference between this function and pipe_pop is that this one will
  * return as soon as any elements are available, whereas pipe_pop will do its
- * best to fill `target' first.
+ * best to fill `target' first.和pipe_pop的区别：
  */
 size_t NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_pop_eager(pipe_consumer_t*,
                                                           void* target,
@@ -236,10 +237,10 @@ size_t NO_NULL_POINTERS WARN_UNUSED_RESULT pipe_pop_eager(pipe_consumer_t*,
 /*
  * Modifies the pipe to have room for at least `count' elements. If more room
  * is already allocated, the call does nothing. This can be useful if requests
- * tend to come in bursts.
+ * tend to come in bursts.(重新设置pipe中可容纳的element的大小)
  *
  * The default minimum is 32 elements. To reset the reservation size to the
- * default, set count to 0.
+ * default, set count to 0.（默认32个）
  */
 void NO_NULL_POINTERS pipe_reserve(pipe_generic_t*, size_t count);
 
