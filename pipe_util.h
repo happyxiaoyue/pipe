@@ -38,9 +38,9 @@ extern "C" {
 /*
  * A function that can be used for processing a pipe.
  *
- * elem_in  - an array of elements to process
- * count    - the number of elements in `elem_in'
- * elem_out - The producer that may be pushed into to continue the chain
+ * elem_in  - an array of elements to process 输入元素数组
+ * count    - the number of elements in `elem_in'数量
+ * elem_out - The producer that may be pushed into to continue the chain 输出元素
  * aux      - auxilary data previously passed to pipe_connect.
  *
  * When `count' is 0, the function will not be called again in that thread. This
@@ -55,7 +55,7 @@ typedef void (*pipe_processor_t)(const void*      /* elem_in */,
 typedef struct {
     pipe_producer_t* in;
     pipe_consumer_t* out;
-} pipeline_t;
+} pipeline_t;//单个pipeline为一个处理节点stage(in,out)
 
 /*
  * Creates a pipeline wrapping an existing pipe. It basically just issues a
@@ -67,14 +67,14 @@ pipeline_t pipe_trivial_pipeline(pipe_t* p);
  * Connects a pipe with a function running in a new thread. Don't leak your
  * `aux' pointer!
  */
-void pipe_connect(pipe_consumer_t* in,
-                  pipe_processor_t proc, void* aux,
-                  pipe_producer_t* out);
+void pipe_connect(pipe_consumer_t* in,//输入，连接前一个pipe的生产者
+                  pipe_processor_t proc, void* aux,//处理函数
+                  pipe_producer_t* out);//输出
 
 /*
  * Creates a pipeline with multiple instances of the same function working on
  * the same queue. Whenever elements are pushed into the pipeline, the
- * instances will work in parallel to process them.
+ * instances will work in parallel to process them.并行化
  *
  * `proc' is run in `instances' many threads, each one being passed _the same_
  * `aux'. It is highly recommended to avoid as much shared state as possible,
@@ -90,8 +90,8 @@ pipeline_t pipe_parallel(size_t           instances,
 
 /*
  * A pipeline consists of a list of functions and pipes. As data is recieved in
- * one end, it is processed by each of the pipes and pushed into the other end.
- * Each stage's processing is done in a seperate thread. The last parameter must
+ * one end, it is processed by each of the pipes and pushed into the other end.（逐次被每个pipe处理，即流水线）
+ * Each stage's processing is done in a seperate thread（分离线程）. The last parameter must
  * be NULL (in place of a pipe_processor_t) if you want to have a consumer_t
  * returned, or 0 (in place of a sizeof()) if you don't want or need a consumer_t.
  * If the last parameter replaces a sizeof(), the return value's `c' member will

@@ -67,12 +67,12 @@ DEF_TEST(basic_storage)
     pipe_t* pipe = pipe_new(sizeof(int), 0);
     pipe_producer_t* p = pipe_producer_new(pipe);
     pipe_consumer_t* c = pipe_consumer_new(pipe);
-    pipe_free(pipe);
+    pipe_free(pipe);//此时就可以释放？
 
     int a[] = { 0, 1, 2, 3, 4 };
     int b[] = { 9, 8, 7, 6, 5 };
 
-    pipe_push(p, a, countof(a));
+    pipe_push(p, a, countof(a));//弹入
     pipe_push(p, b, countof(b));
 
     pipe_producer_free(p);
@@ -80,7 +80,7 @@ DEF_TEST(basic_storage)
     int bufa[6];
     int bufb[10];
 
-    size_t acnt = pipe_pop(c, bufa, countof(bufa)),
+    size_t acnt = pipe_pop(c, bufa, countof(bufa)),//弹出
            bcnt = pipe_pop(c, bufb, countof(bufb));
 
     int expecteda[] = {
@@ -102,6 +102,8 @@ typedef struct {
     int new;
 } testdata_t;
 
+
+//处理函数：将输入数据*2，然后输出
 static void double_elems(const void* elems, size_t count, pipe_producer_t* out, void* aux)
 {
     UNUSED_PARAMETER(aux);

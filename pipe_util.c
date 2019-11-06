@@ -51,6 +51,7 @@ static inline void thread_create(void *(*f) (void*), void* p)
 
 #endif
 
+//内部创建了一个生产者、消费者，并返回pipeline
 pipeline_t pipe_trivial_pipeline(pipe_t* p)
 {
     return (pipeline_t) {
@@ -72,12 +73,12 @@ static void* process_pipe(void* param)
 {
     connect_data_t p = *(connect_data_t*)param;
     free(param);
-
+    //分配空间
     char* buf = malloc(DEFAULT_BUFFER_SIZE * pipe_elem_size(PIPE_GENERIC(p.in)));
 
     size_t elems_read;
-
-    while((elems_read = pipe_pop(p.in, buf, DEFAULT_BUFFER_SIZE)))
+    //从pipe输入读取数据
+    while((elems_read = pipe_pop(p.in, buf, DEFAULT_BUFFER_SIZE)))//不断读，不断处理？，有数据则处理while(1),无数据则while(0)跳过
         p.proc(buf, elems_read, p.out, p.aux);
 
     p.proc(NULL, 0, NULL, p.aux);
@@ -100,14 +101,14 @@ void pipe_connect(pipe_consumer_t* in,
 
     connect_data_t* d = malloc(sizeof *d);
 
-    *d = (connect_data_t) {
+    *d = (connect_data_t) {//学习这种结构体赋值方式
         .in = in,
         .proc = proc,
         .aux = aux,
         .out = out
     };
 
-    thread_create(&process_pipe, d);
+    thread_create(&process_pipe, d);//自己创建自己？
 }
 
 pipeline_t pipe_parallel(size_t           instances,
