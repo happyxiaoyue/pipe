@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 /*
- * A function that can be used for processing a pipe.
+ * A function that can be used for processing a pipe.处理节点函数模型
  *
  * elem_in  - an array of elements to process 输入元素数组
  * count    - the number of elements in `elem_in'数量
@@ -52,20 +52,22 @@ typedef void (*pipe_processor_t)(const void*      /* elem_in */,
                                  void*            /* aux */
                                 );
 
+//单个pipeline为一个处理节点stage(producer_in,consumer_out)
 typedef struct {
     pipe_producer_t* in;
     pipe_consumer_t* out;
-} pipeline_t;//单个pipeline为一个处理节点stage(in,out)
+} pipeline_t;//单个pipeline为一个处理节点stage(producer_in,consumer_out)
 
 /*
  * Creates a pipeline wrapping an existing pipe. It basically just issues a
  * producer and consumer and throws them out as a basic NUL pipeline.
+ * 创建一个pipeline：包含消费者和生产者
  */
 pipeline_t pipe_trivial_pipeline(pipe_t* p);
 
 /*
  * Connects a pipe with a function running in a new thread. Don't leak your
- * `aux' pointer!
+ * `aux' pointer!将管道与在新线程中运行的函数连接，创建proc处理线程
  */
 void pipe_connect(pipe_consumer_t* in,//输入，连接前一个pipe的生产者
                   pipe_processor_t proc, void* aux,//处理函数
@@ -74,7 +76,7 @@ void pipe_connect(pipe_consumer_t* in,//输入，连接前一个pipe的生产者
 /*
  * Creates a pipeline with multiple instances of the same function working on
  * the same queue. Whenever elements are pushed into the pipeline, the
- * instances will work in parallel to process them.并行化
+ * instances will work in parallel to process them.并行化，多个实体运行相同的线程函数
  *
  * `proc' is run in `instances' many threads, each one being passed _the same_
  * `aux'. It is highly recommended to avoid as much shared state as possible,

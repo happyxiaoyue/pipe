@@ -62,6 +62,7 @@
     : 0)
 
 // This test answers the question: "Can we use a pipe like a normal queue?"
+// pipe的基本操作，不涉及pipeline
 DEF_TEST(basic_storage)
 {
     pipe_t* pipe = pipe_new(sizeof(int), 0);
@@ -80,8 +81,8 @@ DEF_TEST(basic_storage)
     int bufa[6];
     int bufb[10];
 
-    size_t acnt = pipe_pop(c, bufa, countof(bufa)),//弹出
-           bcnt = pipe_pop(c, bufb, countof(bufb));
+    size_t acnt = pipe_pop(c, bufa, countof(bufa)),//弹出，接收：0, 1, 2, 3, 4, 9
+           bcnt = pipe_pop(c, bufb, countof(bufb));// 8, 7, 6, 5
 
     int expecteda[] = {
         0, 1, 2, 3, 4, 9
@@ -127,6 +128,7 @@ static void double_elems(const void* elems, size_t count, pipe_producer_t* out, 
 #define MAX_NUM     500000
 #endif
 
+//测试数据产生
 static void generate_test_data(pipe_producer_t* p)
 {
     for(int i = 0; i < MAX_NUM; ++i)
@@ -136,11 +138,13 @@ static void generate_test_data(pipe_producer_t* p)
     }
 }
 
+//验证测试数据
 static inline void validate_test_data(testdata_t t, int multiplier)
 {
     assert(t.new == t.orig*multiplier);
 }
 
+//验证消费者
 static void validate_consumer(pipe_consumer_t* c, unsigned doublings)
 {
     testdata_t t;
@@ -149,11 +153,12 @@ static void validate_consumer(pipe_consumer_t* c, unsigned doublings)
         validate_test_data(t, 1 << doublings);
 }
 
+//流水线处理
 DEF_TEST(pipeline_multiplier)
 {
     pipeline_t pipeline =
         pipe_pipeline(sizeof(testdata_t),
-                      &double_elems, (void*)NULL, sizeof(testdata_t),
+                      &double_elems, (void*)NULL, sizeof(testdata_t),//double_elems函数按照pipe_processor_t模型定义
                       &double_elems, (void*)NULL, sizeof(testdata_t),
                       &double_elems, (void*)NULL, sizeof(testdata_t),
                       &double_elems, (void*)NULL, sizeof(testdata_t),
@@ -167,10 +172,13 @@ DEF_TEST(pipeline_multiplier)
     assert(pipeline.in);
     assert(pipeline.out);
 
-    generate_test_data(pipeline.in); pipe_producer_free(pipeline.in);
-    validate_consumer(pipeline.out, 8);  pipe_consumer_free(pipeline.out);
+    generate_test_data(pipeline.in); 
+    pipe_producer_free(pipeline.in);
+    validate_consumer(pipeline.out, 8);  
+    pipe_consumer_free(pipeline.out);
 }
 
+//并行处理
 DEF_TEST(parallel_multiplier)
 {
     pipeline_t pipeline =
@@ -193,6 +201,7 @@ struct Foo
     int c;
 };
 
+//
 DEF_TEST(issue_4)
 {
     pipe_t* p = pipe_new(sizeof(struct Foo), 0);

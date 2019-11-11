@@ -594,7 +594,7 @@ pipe_t* pipe_new(size_t elem_size, size_t original_limit)
 // Instead of allocating a special handle, the pipe_*_new() functions just
 // return the original pipe, cast into a user-friendly form. This saves needless
 // malloc calls. Also, since we have to refcount anyways, it's free.
-pipe_producer_t* pipe_producer_new(pipe_t* p)
+pipe_producer_t* pipe_producer_new(pipe_t* p)// 创建生产者
 {
     mutex_lock(&p->begin_lock);
         p->producer_refcount++;
@@ -603,7 +603,7 @@ pipe_producer_t* pipe_producer_new(pipe_t* p)
     return (pipe_producer_t*)p;
 }
 
-pipe_consumer_t* pipe_consumer_new(pipe_t* p)
+pipe_consumer_t* pipe_consumer_new(pipe_t* p) //创建消费者
 {
     mutex_lock(&p->end_lock);
         p->consumer_refcount++;
@@ -627,7 +627,7 @@ static void deallocate(pipe_t* p)
     free(p);
 }
 
-void pipe_free(pipe_t* p)
+void pipe_free(pipe_t* p) //释放pipe资源
 {
     size_t new_producer_refcount,
            new_consumer_refcount;
@@ -655,7 +655,7 @@ void pipe_free(pipe_t* p)
         cond_broadcast(&p->just_pushed);
 }
 
-void pipe_producer_free(pipe_producer_t* handle)
+void pipe_producer_free(pipe_producer_t* handle) //释放“生产者”资源
 {
     pipe_t* p = PIPIFY(handle);
     size_t new_producer_refcount;
@@ -683,7 +683,7 @@ void pipe_producer_free(pipe_producer_t* handle)
     }
 }
 
-void pipe_consumer_free(pipe_consumer_t* handle)
+void pipe_consumer_free(pipe_consumer_t* handle) //释放“消费者”资源
 {
     pipe_t* p = PIPIFY(handle);
     size_t new_consumer_refcount;
