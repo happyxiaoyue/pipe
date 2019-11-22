@@ -20,61 +20,86 @@
          ? memcmp(a1, a2, sizeof(a1)) == 0  \
          : 0)
 
-typedef struct {
+typedef struct
+{
     int orig;
     int new;
 } testdata_t;
 
-static void double_elems(const void* elems, size_t count, pipe_producer_t* out, void* aux)
+void test_stage(const void *elems, size_t count, pipe_producer_t *out, void *aux)
 {
     UNUSED_PARAMETER(aux);
 
-    if(count == 0)
+    if (count == 0)
         return;
 
     testdata_t outbuffer[count];
 
-    memcpy(outbuffer, elems, count*sizeof(testdata_t));
+    memcpy(outbuffer, elems, count * sizeof(testdata_t));
 
-    for(size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i)
+    {
         outbuffer[i].new *= 2;
+        // printf("out=%d\n",outbuffer[i].new);
+    }
+    printf("out=%d\n",outbuffer[1].new);
+
+    pipe_push(out, outbuffer, count);
+}
+
+static void double_elems(const void *elems, size_t count, pipe_producer_t *out, void *aux)
+{
+    UNUSED_PARAMETER(aux);
+
+    if (count == 0)
+        return;
+
+    testdata_t outbuffer[count];
+
+    memcpy(outbuffer, elems, count * sizeof(testdata_t));
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        outbuffer[i].new *= 2;
+        // printf("out=%d\n",outbuffer[i].new);
+    }
+    printf("out=%d\n",outbuffer[1].new);
 
     pipe_push(out, outbuffer, count);
 }
 
 #ifdef PIPE_DEBUG
-#define MAX_NUM     250000
+#define MAX_NUM 250000
 #else
-#define MAX_NUM     500000
+#define MAX_NUM 5
 #endif
 
-static void generate_test_data(pipe_producer_t* p)
+static void generate_test_data(pipe_producer_t *p)
 {
-    for(int i = 0; i < MAX_NUM; ++i)
+    for (int i = 0; i < MAX_NUM; ++i)
     {
-        testdata_t t = { i, i };
+        testdata_t t = {i, i};
         pipe_push(p, &t, 1);
     }
 }
 
 static inline void validate_test_data(testdata_t t, int multiplier)
 {
-    assert(t.new == t.orig*multiplier);
+    assert(t.new == t.orig *multiplier);
 }
 
-static void validate_consumer(pipe_consumer_t* c, unsigned doublings)
+static void validate_consumer(pipe_consumer_t *c, unsigned doublings)
 {
     testdata_t t;
 
-    while(pipe_pop(c, &t, 1))
+    while (pipe_pop(c, &t, 1))
         validate_test_data(t, 1 << doublings);
 }
-
 
 int main()
 {
     //pipe_run_test_suite();
-    
+
     pipe_t *pipe = pipe_new(sizeof(int), 0); //元素为int类型，大小4字节，不是buf的长度
     pipe_producer_t *p = pipe_producer_new(pipe);
     pipe_consumer_t *c = pipe_consumer_new(pipe);
@@ -107,7 +132,6 @@ int main()
     assert(array_eq_len(expectedb, bufb, bcnt));
 
     pipe_consumer_free(c);
-    
 
     /********************pipeline************************/
 
@@ -119,17 +143,33 @@ int main()
                       &double_elems, (void *)NULL, sizeof(testdata_t),
                       &double_elems, (void *)NULL, sizeof(testdata_t),
                       &double_elems, (void *)NULL, sizeof(testdata_t),
-                      &double_elems, (void *)NULL, sizeof(testdata_t),
-                      &double_elems, (void *)NULL, sizeof(testdata_t),
+                    //   &double_elems, (void *)NULL, sizeof(testdata_t),
+                    //   &double_elems, (void *)NULL, sizeof(testdata_t),
                       (void *)NULL);
 
     assert(pipeline.in);
     assert(pipeline.out);
 
-    generate_test_data(pipeline.in);//参数为上面pipe_pipeline函数的返回值
+    generate_test_data(pipeline.in); //参数为上面pipe_pipeline函数的返回值
     pipe_producer_free(pipeline.in);
-    validate_consumer(pipeline.out, 8);
-    //validate_test_data()
+    validate_consumer(pipeline.out, 6);//前面的处理节点数量
+    validate_consumer(pipeline.out, 6);
     pipe_consumer_free(pipeline.out);
+
+/********************pipe_parallel************************/
+
+    pipeline_t pipeline_1 =
+        pipe_parallel(4,
+                      sizeof(testdata_t),
+                      &test_stage, (void*)NULL,
+                      sizeof(testdata_t));
+
+    assert(pipeline_1.in);
+    assert(pipeline_1.out);
+
+    generate_test_data(pipeline_1.in); 
+    pipe_producer_free(pipeline_1.in);
+    validate_consumer(pipeline_1.out, 1); 
+    pipe_consumer_free(pipeline_1.out);
     return 0;
 }

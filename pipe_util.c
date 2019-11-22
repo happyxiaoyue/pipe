@@ -76,11 +76,11 @@ static void* process_pipe(void* param)
 {
     connect_data_t p = *(connect_data_t*)param;
     free(param);
-    //分配空间
+    //分配空间：buf大小*元素大小
     char* buf = malloc(DEFAULT_BUFFER_SIZE * pipe_elem_size(PIPE_GENERIC(p.in)));
 
     size_t elems_read;
-    //从pipe输入读取数据
+    //从pipe输入读取cnt个数据
     while((elems_read = pipe_pop(p.in, buf, DEFAULT_BUFFER_SIZE)))//不断读，不断处理？，有数据则处理while(1),无数据则while(0)跳过
         p.proc(buf, elems_read, p.out, p.aux);
 
@@ -114,7 +114,7 @@ void pipe_connect(pipe_consumer_t* in,
         .out = out
     };
 
-    thread_create(&process_pipe, d);//创建proc处理线程，注意不是linux的线程函数
+    thread_create(&process_pipe, d);//创建proc处理线程，注意不是linux的系统线程函数
 }
 
 
