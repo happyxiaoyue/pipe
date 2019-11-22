@@ -1,0 +1,1 @@
+/usr/bin/cc -std=c99  -rdynamic CMakeFiles/pipe_test.dir/main.c.o CMakeFiles/pipe_test.dir/pipe.c.o CMakeFiles/pipe_test.dir/pipe_util.c.o  -o pipe_test -lpthread 

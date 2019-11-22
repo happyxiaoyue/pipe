@@ -172,7 +172,7 @@ DEF_TEST(pipeline_multiplier)
     assert(pipeline.in);
     assert(pipeline.out);
 
-    generate_test_data(pipeline.in); 
+    generate_test_data(pipeline.in); //参数为上面pipe_pipeline函数的返回值pipeline，向其注入数据
     pipe_producer_free(pipeline.in);
     validate_consumer(pipeline.out, 8);  
     pipe_consumer_free(pipeline.out);
@@ -190,8 +190,10 @@ DEF_TEST(parallel_multiplier)
     assert(pipeline.in);
     assert(pipeline.out);
 
-    generate_test_data(pipeline.in); pipe_producer_free(pipeline.in);
-    validate_consumer(pipeline.out, 1); pipe_consumer_free(pipeline.out);
+    generate_test_data(pipeline.in); 
+    pipe_producer_free(pipeline.in);
+    validate_consumer(pipeline.out, 1); 
+    pipe_consumer_free(pipeline.out);
 }
 
 struct Foo
